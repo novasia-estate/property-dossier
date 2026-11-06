@@ -1,0 +1,25 @@
+name: Registry installation
+on:
+  push:
+    paths: ['.github/workflows/verify-registry.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - run: gem install property_dossier --version 1.0.0 --no-document
+      - run: |
+          property-dossier --version
+          ruby -rproperty_dossier -e 'abort unless PropertyDossier::VERSION == "1.0.0"; puts $LOADED_FEATURES.grep(/property_dossier.rb/)'
+          set +e
+          property-dossier --manifest examples/manifest.json --root examples/documents --as-of 2026-11-06 > installed-report.json
+          status=$?
+          set -e
+          test "$status" = 1
+          ruby -rjson -e 'r=JSON.parse(File.read("installed-report.json")); abort unless r["findings"].map{|f|f["code"]}==["missing_requirement"]'
