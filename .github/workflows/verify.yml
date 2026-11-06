@@ -1,0 +1,31 @@
+name: Verify
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby: ['3.1', '3.3', '3.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - run: ruby -Ilib test/test_property_dossier.rb
+      - run: gem build property_dossier.gemspec
+      - run: |
+          gem install --local property_dossier-1.0.0.gem --no-document
+          property-dossier --version
+          set +e
+          property-dossier --manifest examples/manifest.json --root examples/documents --as-of 2026-11-06 > report.json
+          status=$?
+          set -e
+          test "$status" = 1
+          ruby -rjson -e 'r=JSON.parse(File.read("report.json")); abort unless r["findings"].any?{|f|f["code"]=="missing_requirement"}'
+      - uses: actions/upload-artifact@v4
+        if: matrix.ruby == '3.4'
+        with:
+          name: property-dossier-gem
+          path: property_dossier-1.0.0.gem

@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+require 'optparse'
+require_relative '../lib/property_dossier'
+options = { format: 'json' }
+parser = OptionParser.new do |p|
+  p.banner = 'Usage: property-dossier --manifest manifest.json --root ./documents --as-of YYYY-MM-DD [--format json|html]'
+  p.on('--manifest PATH') { |v| options[:manifest] = v }
+  p.on('--root PATH') { |v| options[:root] = v }
+  p.on('--as-of DATE') { |v| options[:as_of] = v }
+  p.on('--format FORMAT', %w[json html]) { |v| options[:format] = v }
+  p.on('--version') { puts PropertyDossier::VERSION; exit }
+  p.on('-h', '--help') { puts p; exit }
+end
+begin
+  parser.parse!
+  raise ArgumentError, 'unexpected positional arguments' unless ARGV.empty?
+  %i[manifest root as_of].each { |k| raise ArgumentError, "--#{k.to_s.tr('_', '-')} is required" unless options[k] }
+  report = PropertyDossier::Inspector.new(PropertyDossier::Manifest.load(options[:manifest]), root: options[:root], as_of: options[:as_of]).call
+  puts(options[:format] == 'html' ? report.to_html : report.to_json)
+  exit(report.ok? ? 0 : 1)
+rescue OptionParser::ParseError, ArgumentError, PropertyDossier::Manifest::Invalid, SystemCallError => e
+  warn "property-dossier: #{e.message}"
+  exit 2
+end

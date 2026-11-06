@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "property_id": "SYNTHETIC-UNIT-A12",
+  "requirements": ["title_copy", "floor_plan", "inspection_report"],
+  "documents": [
+    {"id": "title-v1", "kind": "title_copy", "path": "title-fixture.txt", "revision": 1},
+    {"id": "plan-v1", "kind": "floor_plan", "path": "plan-fixture.txt", "revision": 1}
+  ]
+}
